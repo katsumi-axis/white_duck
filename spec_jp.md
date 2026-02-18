@@ -332,10 +332,3 @@ white_duck/
 4. **リアルタイム**: フェーズ1では実装しない
 
 ---
-
-## 参考資料
-
-- [DuckDB Documentation](https://duckdb.org/docs/)
-- [Redash](https://redash.io/)
-- [MotherDuck](https://motherduck.com/)
-- [TanStack](https://tanstack.com/)

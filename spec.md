@@ -325,12 +325,3 @@ white_duck/
 2. **Database Persistence**: File-based (configurable to in-memory)
 3. **Multi-tenancy**: Single user with full auth (JWT + API Key)
 4. **Real-time**: Not in Phase 1
-
----
-
-## References
-
-- [DuckDB Documentation](https://duckdb.org/docs/)
-- [Redash](https://redash.io/)
-- [MotherDuck](https://motherduck.com/)
-- [TanStack](https://tanstack.com/)
