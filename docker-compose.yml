@@ -1,0 +1,43 @@
+services:
+  backend:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - duckdb-data:/data
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DUCKDB_MODE=file
+      - DUCKDB_PATH=/data/db.duckdb
+      - AUTH_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - API_KEY=${API_KEY:-dev-api-key}
+      - DEFAULT_USER=${DEFAULT_USER:-admin}
+      - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-admin123}
+      - UPLOAD_DIR=/data/uploads
+    command: sh -c "bun install && bun run src/index.ts"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:5173"
+    environment:
+      - VITE_API_URL=http://backend:3000
+    command: sh -c "bun install && bun run dev --host 0.0.0.0"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  duckdb-data:
