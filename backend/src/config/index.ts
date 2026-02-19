@@ -1,6 +1,7 @@
 export const config = {
   port: Number(process.env.PORT) || 3000,
   host: process.env.HOST || '0.0.0.0',
+  env: process.env.NODE_ENV || 'development',
 
   // DuckDB
   duckdb: {
@@ -19,6 +20,9 @@ export const config = {
   // Default user
   defaultUser: process.env.DEFAULT_USER || 'admin',
   defaultPassword: process.env.DEFAULT_PASSWORD || 'admin123',
+
+  // CORS
+  corsOrigin: process.env.CORS_ORIGIN,
 
   // Uploads
   uploads: {

@@ -8,8 +8,8 @@ A self-hosted DuckDB web interface with a Redash-like UI and HTTP API for extern
 - **Schema Explorer**: Browse databases, schemas, and tables
 - **Query Results**: Paginated table view with export options (CSV/JSON)
 - **HTTP API**: RESTful API for external applications
+- **Remote MCP**: Model Context Protocol endpoint for AI clients (Cursor, etc.)
 - **Authentication**: JWT-based web UI auth + API Key for HTTP API
-- **File Upload**: Import CSV/JSON/Parquet files as tables
 - **Docker Support**: Easy deployment with Docker Compose
 
 ## Quick Start
@@ -65,8 +65,24 @@ Environment variables:
 | `API_KEY` | API key for HTTP API | (required) |
 | `DEFAULT_USER` | Default username | `admin` |
 | `DEFAULT_PASSWORD` | Default password | `admin123` |
-| `UPLOAD_DIR` | Directory for uploads | `/data/uploads` |
-| `MAX_UPLOAD_SIZE` | Max upload size in MB | `100` |
+
+### Generating secrets
+
+**JWT_SECRET** — Used to sign and verify JWT tokens (web UI login). Use a long, random secret.
+
+```bash
+# Example: 32-byte random value, base64-encoded
+openssl rand -base64 32
+```
+
+**API_KEY** — Used for API access via the `X-API-Key` header. Use a long, random key.
+
+```bash
+# Example: 32-byte random value, hex-encoded
+openssl rand -hex 32
+```
+
+Set the outputs in `.env` as `JWT_SECRET=...` and `API_KEY=...`. Do not use the example placeholders in production.
 
 ## HTTP API
 
@@ -119,17 +135,6 @@ GET /api/schemas
 GET /api/tables/:schema
 ```
 
-#### Upload Data
-
-```bash
-POST /api/upload
-Content-Type: multipart/form-data
-
-file: <data file>
-table_name: my_table
-format: csv  # or json, parquet
-```
-
 #### Saved Queries
 
 ```bash
@@ -146,6 +151,34 @@ GET /api/queries/:id
 # Delete
 DELETE /api/queries/:id
 ```
+
+## Remote MCP
+
+White Duck exposes an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server so AI clients can query DuckDB via tools.
+
+### Endpoint
+
+- **URL**: `http://<host>:<port>/mcp`
+- Example (local): `http://localhost:3000/mcp`
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `execute_sql` | Run a SQL query. Argument: `sql` (string). |
+| `list_schemas` | List database schemas (e.g. `main`). |
+| `list_tables` | List tables and columns for a schema. Argument: `schema` (string). |
+
+### Adding in Cursor
+
+1. Open **Cursor Settings** → **MCP** → **Remote** (or add a remote server in your MCP config).
+2. Add server URL: `http://localhost:3000/mcp` (or your deployed base URL + `/mcp`).
+3. Save; the `white-duck` tools will appear for the AI to use.
+
+### Notes
+
+- MCP uses Streamable HTTP (GET for SSE, POST for JSON-RPC). No API key is required for the MCP endpoint in this implementation; restrict access at the network/firewall level if needed.
+- For production, run behind HTTPS and restrict origins/hosts as needed.
 
 ## Tech Stack
 

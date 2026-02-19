@@ -107,13 +107,16 @@ export function getSchemas(): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const database = getDatabase();
     database.all(
-      "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog')",
+      "SELECT catalog_name, schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog')",
       (err, rows) => {
         if (err) {
           reject(new Error(err.message));
           return;
         }
-        const schemas = rows?.map((r) => (r as { schema_name: string }).schema_name) || ['main'];
+        const schemas = rows?.map((r) => {
+          const { catalog_name, schema_name } = r as { catalog_name: string; schema_name: string };
+          return `${catalog_name}.${schema_name}`;
+        }) || ['main'];
         resolve(schemas);
       }
     );
@@ -129,13 +132,22 @@ export interface TableInfo {
 export function getTables(schema: string): Promise<TableInfo[]> {
   return new Promise((resolve, reject) => {
     const database = getDatabase();
-    database.all(
-      `SELECT table_name, column_name, data_type, is_nullable
+    // Extract schema name from "catalog.schema" format
+    const schemaName = schema.includes('.') ? schema.split('.')[1] : schema;
+    const catalogName = schema.includes('.') ? schema.split('.')[0] : null;
+
+    let query = `SELECT table_name, column_name, data_type, is_nullable
        FROM information_schema.columns
-       WHERE table_schema = ?
-       ORDER BY table_name, ordinal_position`,
-      [schema],
-      (err, rows) => {
+       WHERE table_schema = ?`;
+    const params: string[] = [schemaName];
+
+    if (catalogName) {
+      query += ` AND table_catalog = ?`;
+      params.push(catalogName);
+    }
+    query += ` ORDER BY table_name, ordinal_position`;
+
+    database.all(query, params, (err, rows) => {
         if (err) {
           reject(new Error(err.message));
           return;

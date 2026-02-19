@@ -8,19 +8,35 @@ import {
   initializeDefaultUser,
   validateUser,
   validateApiKey,
+  type User,
 } from '../auth/index.js';
 import { config } from '../config/index.js';
+import { createMcpServer } from '../mcp/index.js';
 
-export const app = new Hono();
+type Env = { Variables: { user: User } };
+export const app = new Hono<Env>();
+
+// CORS configuration: restrict origin in production
+const getCorsOrigin = () => {
+  if (config.env === 'production') {
+    if (!config.corsOrigin) {
+      throw new Error('CORS_ORIGIN environment variable is required in production');
+    }
+    return config.corsOrigin;
+  }
+  // Development: allow common local origins
+  return ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
+};
 
 // Initialize
 app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+    origin: getCorsOrigin(),
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'mcp-session-id', 'Last-Event-ID', 'mcp-protocol-version'],
+    exposeHeaders: ['mcp-session-id', 'mcp-protocol-version'],
   })
 );
 
@@ -54,9 +70,9 @@ app.get('/api/auth/me', authMiddleware, (c) => {
   return c.json({ user });
 });
 
-// API Key info
+// API Key info - returns only whether an API key is configured (not the actual key)
 app.get('/api/auth/api-key', authMiddleware, (c) => {
-  return c.json({ apiKey: config.auth.apiKey });
+  return c.json({ hasApiKey: !!config.auth.apiKey });
 });
 
 // Query execution
@@ -112,56 +128,6 @@ app.get('/api/tables/:schema', authMiddleware, async (c) => {
   }
 });
 
-// File upload
-app.post('/api/upload', authMiddleware, async (c) => {
-  try {
-    const body = await c.req.parseBody();
-    const file = body['file'];
-    const tableName = body['table_name'] as string;
-    const format = (body['format'] as string) || 'csv';
-
-    if (!file || !(file instanceof File)) {
-      return c.json({ error: 'File is required' }, 400);
-    }
-
-    if (!tableName) {
-      return c.json({ error: 'Table name is required' }, 400);
-    }
-
-    // Save file
-    const arrayBuffer = await file.arrayBuffer();
-    const filePath = `${config.uploads.dir}/${tableName}.${format}`;
-    await Bun.write(filePath, arrayBuffer);
-
-    // Import into DuckDB
-    let importSql: string;
-    switch (format) {
-      case 'csv':
-        importSql = `CREATE TABLE ${tableName} AS SELECT * FROM read_csv_auto('${filePath}')`;
-        break;
-      case 'json':
-        importSql = `CREATE TABLE ${tableName} AS SELECT * FROM read_json_auto('${filePath}')`;
-        break;
-      case 'parquet':
-        importSql = `CREATE TABLE ${tableName} AS SELECT * FROM read_parquet('${filePath}')`;
-        break;
-      default:
-        return c.json({ error: 'Unsupported format' }, 400);
-    }
-
-    await executeQuery(importSql);
-
-    return c.json({
-      success: true,
-      tableName,
-      message: `Table ${tableName} created successfully`,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Upload failed';
-    return c.json({ error: message }, 500);
-  }
-});
-
 // Saved queries (in-memory for now)
 const savedQueries = new Map<string, { id: string; name: string; sql: string; tags: string[] }>();
 
@@ -203,9 +169,15 @@ app.delete('/api/queries/:id', authMiddleware, (c) => {
 // Initialize and start
 export async function startServer() {
   await initializeDefaultUser();
+
+  const mcp = createMcpServer();
+  app.all('/mcp', (c) => mcp.transport.handleRequest(c.req.raw));
+  await mcp.server.connect(mcp.transport);
+
   console.log(`Server starting on ${config.host}:${config.port}`);
   console.log(`DuckDB mode: ${config.duckdb.mode}`);
   console.log(`Auth enabled: ${config.auth.enabled}`);
+  console.log(`MCP (remote): http://${config.host === '0.0.0.0' ? 'localhost' : config.host}:${config.port}/mcp`);
 
   return Bun.serve({
     port: config.port,

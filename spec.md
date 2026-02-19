@@ -80,9 +80,6 @@ GET /api/schemas
 
 GET /api/tables/:schema
   Response: { "tables": [...] }
-
-POST /api/upload
-  Upload CSV/JSON/Parquet files to create tables
 ```
 
 ### 6. Authentication (Optional)
@@ -135,10 +132,6 @@ API_KEY=your-api-key
 # Default user (for first setup)
 DEFAULT_USER=admin
 DEFAULT_PASSWORD=admin123
-
-# Uploads
-UPLOAD_DIR=/data/uploads
-MAX_UPLOAD_SIZE=100MB
 ```
 
 ---
@@ -201,24 +194,6 @@ Response:
 }
 ```
 
-### Upload Data
-```
-POST /api/upload
-Content-Type: multipart/form-data
-
-Form fields:
-- file: <data file>
-- table_name: target table name
-- format: csv, json, parquet
-
-Response:
-{
-  "success": true,
-  "tableName": "my_data",
-  "rowCount": 500
-}
-```
-
 ---
 
 ## UI Layout
@@ -266,7 +241,6 @@ white_duck/
 │   │   │   └── client.go
 │   │   └── config/
 │   │       └── config.go
-│   └── uploads/
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -303,7 +277,6 @@ white_duck/
 ### Phase 3: Enhanced Features
 - [x] Query history (in-memory)
 - [x] Save/load queries
-- [x] File upload
 - [x] Export results
 
 ### Phase 4: Docker & Deployment

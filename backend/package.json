@@ -8,8 +8,9 @@
     "build": "bun build src/index.ts --outdir dist --target bun"
   },
   "dependencies": {
-    "hono": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "duckdb": "^1.1.0",
+    "hono": "^4.0.0",
     "jose": "^5.2.0",
     "zod": "^3.22.0"
   },

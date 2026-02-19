@@ -80,9 +80,6 @@ GET /api/schemas
 
 GET /api/tables/:schema
   Response: { "tables": [...] }
-
-POST /api/upload
-  CSV/JSON/Parquetファイルをアップロードしてテーブルを作成
 ```
 
 ### 6. 認証（オプション）
@@ -135,10 +132,6 @@ API_KEY=your-api-key
 # デフォルトユーザー（初回セットアップ用）
 DEFAULT_USER=admin
 DEFAULT_PASSWORD=admin123
-
-# アップロード
-UPLOAD_DIR=/data/uploads
-MAX_UPLOAD_SIZE=100MB
 ```
 
 ---
@@ -201,24 +194,6 @@ GET /api/tables/:schema
 }
 ```
 
-### データアップロード
-```
-POST /api/upload
-Content-Type: multipart/form-data
-
-フォームフィールド:
-- file: <データファイル>
-- table_name: 作成するテーブル名
-- format: csv, json, parquet
-
-レスポンス:
-{
-  "success": true,
-  "tableName": "my_data",
-  "rowCount": 500
-}
-```
-
 ---
 
 ## UIレイアウト
@@ -270,7 +245,6 @@ white_duck/
 │   │   │   └── auth.ts
 │   │   └── config/
 │   │       └── index.ts
-│   └── uploads/
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -309,7 +283,6 @@ white_duck/
 ### フェーズ3: 拡張機能
 - [x] クエリ履歴（インメモリ）
 - [x] クエリの保存/読み込み
-- [x] ファイルアップロード
 - [x] 結果のエクスポート
 
 ### フェーズ4: Docker & デプロイ
