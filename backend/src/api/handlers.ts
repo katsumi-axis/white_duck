@@ -24,8 +24,12 @@ const getCorsOrigin = () => {
     }
     return config.corsOrigin;
   }
-  // Development: allow common local origins
-  return ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
+  // Development: allow common local origins and null (for desktop apps like Cursor)
+  return (origin: string | null) => {
+    if (!origin) return true; // Allow null origin (desktop apps)
+    const allowed = ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
+    return allowed.includes(origin);
+  };
 };
 
 // Initialize
@@ -171,7 +175,16 @@ export async function startServer() {
   await initializeDefaultUser();
 
   const mcp = createMcpServer();
-  app.all('/mcp', (c) => mcp.transport.handleRequest(c.req.raw));
+  // MCP endpoint: handle both SSE (GET) and JSON-RPC (POST)
+  // Note: authMiddleware runs before transport.handleRequest, so auth headers are validated
+  app.all('/mcp', authMiddleware, async (c) => {
+    try {
+      return await mcp.transport.handleRequest(c.req.raw);
+    } catch (error) {
+      console.error('MCP transport error:', error);
+      return c.json({ error: 'MCP transport error' }, 500);
+    }
+  });
   await mcp.server.connect(mcp.transport);
 
   console.log(`Server starting on ${config.host}:${config.port}`);

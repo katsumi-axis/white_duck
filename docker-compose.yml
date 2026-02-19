@@ -17,6 +17,7 @@ services:
       - API_KEY=${API_KEY:-dev-api-key}
       - DEFAULT_USER=${DEFAULT_USER:-admin}
       - DEFAULT_PASSWORD=${DEFAULT_PASSWORD:-admin123}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
     command: sh -c "bun install && bun run src/index.ts"
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/health').then(r => r.ok ? process.exit(0) : process.exit(1))"]

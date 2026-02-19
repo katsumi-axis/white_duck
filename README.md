@@ -160,6 +160,7 @@ White Duck exposes an [MCP](https://modelcontextprotocol.io) (Model Context Prot
 
 - **URL**: `http://<host>:<port>/mcp`
 - Example (local): `http://localhost:3000/mcp`
+- **Authentication**: Same as the HTTP API. Send `X-API-Key: <your API_KEY>` or `Authorization: Bearer <JWT>` in request headers. When `AUTH_ENABLED` is `false`, no auth is required.
 
 ### Tools
 
@@ -171,13 +172,17 @@ White Duck exposes an [MCP](https://modelcontextprotocol.io) (Model Context Prot
 
 ### Adding in Cursor
 
-1. Open **Cursor Settings** → **MCP** → **Remote** (or add a remote server in your MCP config).
-2. Add server URL: `http://localhost:3000/mcp` (or your deployed base URL + `/mcp`).
-3. Save; the `white-duck` tools will appear for the AI to use.
+This repo includes a project-level MCP config at `.cursor/mcp.json` that points to `http://localhost:3000/mcp`. If the backend is running locally, Cursor will use it automatically in this project.
+
+When auth is enabled, the MCP endpoint requires the same credentials as the API. In Cursor, add the API key as a header:
+1. Open **Cursor Settings** → **MCP** → your `white-duck` server (or add a new Remote server).
+2. Set URL to `http://localhost:3000/mcp` (or your deployed base URL + `/mcp`).
+3. Add header: `X-API-Key` = your `API_KEY` from `.env` (or use **Headers** in the MCP config if available).
+4. Save and restart Cursor if needed; the `white-duck` tools will appear for the AI to use.
 
 ### Notes
 
-- MCP uses Streamable HTTP (GET for SSE, POST for JSON-RPC). No API key is required for the MCP endpoint in this implementation; restrict access at the network/firewall level if needed.
+- MCP uses Streamable HTTP (GET for SSE, POST for JSON-RPC). When `AUTH_ENABLED` is true, the MCP endpoint requires `X-API-Key` or `Authorization: Bearer <JWT>` like the rest of the API.
 - For production, run behind HTTPS and restrict origins/hosts as needed.
 
 ## Tech Stack
